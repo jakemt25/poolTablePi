@@ -119,10 +119,6 @@ Mat hsvSliders(Mat img) {
         if (waitKey(30) >= 0) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
         {
             cout << "Now set the playing area!" << endl;
-            //cout << "User has clicked points:" << endl;
-            //for (int i = 0; i < playingArea.size(); i++) {
-            //	cout << playingArea[i] << endl;
-            //}
             break;
         }
     }
