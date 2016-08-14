@@ -1,0 +1,14 @@
+Pool Pi Guidance Info Document
+
+Description:
+	- It shall show where the cue ball will go based on where the 
+	  pool stick is, including wall collisions, in real time.
+		- It may show collisions with other balls eventually.
+	- It shall be calibrated to the table
+		- It may be calibrated automatically eventually.
+
+How:
+  Initially:
+	1. Set the playing area manually by clicking points on the table
+	2. Convert a frame to HSV, find the cue ball and project a ring around it
+	3. Find trajectory of ball based on where cue stick breaks the ring
