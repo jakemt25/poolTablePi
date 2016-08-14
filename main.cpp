@@ -66,16 +66,16 @@ Mat hsvSliders(Mat img) {
     namedWindow("Thresholded Image", CV_WINDOW_AUTOSIZE); 
     imshow("Thresholded Image", emptyImg);
     //init values
-    int iLowH = 71;
-    int iHighH = 107;
+    int iLowH = 116;
+    int iHighH = 125;
 
-    int iLowS = 0;
-    int iHighS = 255;
+    int iLowS = 89;
+    int iHighS = 189;
 
-    int iLowV = 45;
-    int iHighV = 82;
+    int iLowV = 0;
+    int iHighV = 255;
     
-    int blurSize = 30;
+    int blurSize = 3;
     //Create trackbars in window
     createTrackbar("LowH", "Thresholded Image", &iLowH, 179); //Hue (0 - 179)
     createTrackbar("HighH", "Thresholded Image", &iHighH, 179);
@@ -106,6 +106,10 @@ Mat hsvSliders(Mat img) {
         if (waitKey(30) >= 0) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
         {
             cout << "Now set the playing area!" << endl;
+            //cout << "User has clicked points:" << endl;
+            //for (int i = 0; i < playingArea.size(); i++) {
+            //	cout << playingArea[i] << endl;
+            //}
             break;
         }
     }
@@ -167,14 +171,14 @@ vector<Vec3f> findAllCircles(Mat img, Mat hsvThresh) {
     imshow("All Circles", emptyImg);
     int minDist = 21;
     int param1 = 20;
-    int param2 = 5;
+    int param2 = 7;
     int minRadius = 7;
     int maxRadius = 15;
-    int blurSize = 2;
+    int blurSize = 3;
     //Create trackbars in "Control Circles" window
     createTrackbar("minDist", "All Circles", &minDist, 300); //minDist (0 - 500)
-    createTrackbar("Param 1", "All Circles", &param1, 100); //Param1 (0 - 500)
-    createTrackbar("Param 2", "All Circles", &param2, 300); //Param2 (0 - 500)
+    createTrackbar("Param 1", "All Circles", &param1, 300); //Param1 (0 - 500)
+    createTrackbar("Param 2", "All Circles", &param2, 30); //Param2 (0 - 500)
     createTrackbar("minRadius", "All Circles", &minRadius, 200); //minRadius (0 - 500)
     createTrackbar("maxRadius", "All Circles", &maxRadius, 200); //maxRadius (0 - 500)
     createTrackbar("blurSize", "All Circles", &blurSize, 200); //maxRadius (0 - 500)
