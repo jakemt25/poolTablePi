@@ -9,6 +9,9 @@ Description:
 
 In Progress:
 	Start the trajectory plotting
+		- Find the stick and it's relation to the cue
+		- Figure out how to continue that line through the ball
+		- How to use physics on that line with the table
 
 How:
   Initially:

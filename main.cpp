@@ -68,48 +68,39 @@ Mat hsvSliders(Mat img) {
     //init values
     int iLowH = 116;
     int iHighH = 125;
-
     int iLowS = 89;
     int iHighS = 189;
-
     int iLowV = 0;
     int iHighV = 255;
-    
     int blurSize = 3;
     //Create trackbars in window
-    createTrackbar("LowH", "Thresholded Image", &iLowH, 179); //Hue (0 - 179)
+    createTrackbar("LowH", "Thresholded Image", &iLowH, 179); 
     createTrackbar("HighH", "Thresholded Image", &iHighH, 179);
-
-    createTrackbar("LowS", "Thresholded Image", &iLowS, 255); //Saturation (0 - 255)
+    createTrackbar("LowS", "Thresholded Image", &iLowS, 255); 
     createTrackbar("HighS", "Thresholded Image", &iHighS, 255);
-
-    createTrackbar("LowV", "Thresholded Image", &iLowV, 255);//Value (0 - 255)
+    createTrackbar("LowV", "Thresholded Image", &iLowV, 255);
     createTrackbar("HighV", "Thresholded Image", &iHighV, 255);
-
     createTrackbar("blurSize", "Thresholded Image", &blurSize, 200);
     cout << "When done thresholding, press escape to continue" << endl;
     while (true) {
         retImg = blankImg.clone();
-        //hsv is image with hsv conversion already, threshold it now
-        inRange(hsv, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), hsvThresh); //Threshold the image based on sliders
+        //use slider values to threshold
+        inRange(hsv, Scalar(iLowH, iLowS, iLowV), 
+                Scalar(iHighH, iHighS, iHighV), hsvThresh); 
         
-        //use blur to smooth the picture
+        //use blur to smooth the picture, needs to be odd number
         GaussianBlur(hsvThresh, hsvThresh, Size(blurSize*2+1, blurSize*2+1), 0, 0);
         threshold(hsvThresh, hsvThresh, 50, 255, 0/*Binary*/);
         
         namedWindow("Thresholded Image", CV_WINDOW_AUTOSIZE);
-        imshow("Thresholded Image", hsvThresh); //show the thresholded image
-        //img.size();
+        imshow("Thresholded Image", hsvThresh);
+        //want the opposite of the table to show up
         imgCpy.copyTo(retImg, ~hsvThresh);
         namedWindow("Overlaid", CV_WINDOW_AUTOSIZE);
-        imshow("Overlaid", retImg); //show the original image
-        if (waitKey(30) >= 0) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
-        {
+        imshow("Overlaid", retImg);
+        //wait for key press to break loop
+        if (waitKey(30) >= 0) {
             cout << "Now set the playing area!" << endl;
-            //cout << "User has clicked points:" << endl;
-            //for (int i = 0; i < playingArea.size(); i++) {
-            //	cout << playingArea[i] << endl;
-            //}
             break;
         }
     }
@@ -117,54 +108,58 @@ Mat hsvSliders(Mat img) {
     return retImg;
 }
 
-//real time ball finding while setting the playing area
+//set the playing area
 Mat setPlayingArea(Mat img/*, vector<Vec3f> circles*/) {
     Mat cpyImg = img.clone();
     Mat contourMapping = Mat::zeros(img.size(), CV_8UC1);
     cout << "Left click the pockets, Right click to remove a point, Middle click to finish" << endl;
     vector<vector<Point> > playingAreaContours; vector<Vec4i> hierarchy;
     while (middleMousePressed == false) {
+        //start with fresh image every time to be able to rewrite changes
         cpyImg = img.clone();
         contourMapping = Mat::zeros(img.size(), CV_8UC1);
         //set the callback function for any mouse event until mouse input for points is made
         setMouseCallback("Set Area", playingAreaMouse, NULL);
+        //creates points where clicked
         if (playingArea.size() > 0) {
             for (int i = 0; i < playingArea.size(); i++) {
                 circle(cpyImg, playingArea[i], 3, Scalar(255, 255, 0), -1, 8, 0);
             }
         }
-        // Draw playing area over picture
+        //connects points to form contour
         if (playingArea.size() > 1) {
             for (int k = 0; k < playingArea.size(); k++) {
                 line(cpyImg, playingArea[k], playingArea[(k+1)%playingArea.size()], Scalar(255, 255, 0), 1, 8);
             }
         }
         namedWindow("Set Area", CV_WINDOW_AUTOSIZE);
-        imshow("Set Area", cpyImg); //show the original image
+        imshow("Set Area", cpyImg); //show the image with playing area over it
         waitKey(30); //needed delay for picture to actually show up
     }
-    //draw play area for contours
+    //draw play area for contours on own canvas
     for (int j = 0; j < playingArea.size(); j++)
     {
-        line(contourMapping, playingArea[j], playingArea[(j + 1) % playingArea.size()], Scalar(255), 1, 8);
+        line(contourMapping, playingArea[j], 
+                playingArea[(j + 1) % playingArea.size()], Scalar(255), 1, 8);
     }
+    //find contours of playing area
     if(playingArea.size() > 1){
-        findContours(contourMapping, playingAreaContours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+        findContours(contourMapping, playingAreaContours, 
+                hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
     }
+    //create mask to only see the playing area
     Mat mask = Mat::zeros(img.size(), CV_8UC1);
     drawContours(mask, playingAreaContours, -1, 255, CV_FILLED);
+    //table should be the center of the picture so this should be fine
     floodFill(mask, Point(mask.rows/2, mask.cols/2), 255);
     Mat finalImg(img.size(), img.type());
     img.copyTo(finalImg, mask);
-    namedWindow("Masked Window", 1);
-    imshow("Masked Window", finalImg);
     destroyAllWindows();
     return finalImg;
 }
 
 //uses hough circles to find circles in passed in image
 vector<Vec3f> findAllCircles(Mat img, Mat hsvThresh) {
-    //Show everything that looks like a ball
     cout << "Adjust sliders until just the balls are seen, then press escape to continue" << endl;
     vector<Vec3f> circles;
     namedWindow("All Circles", CV_WINDOW_AUTOSIZE); 
@@ -183,14 +178,19 @@ vector<Vec3f> findAllCircles(Mat img, Mat hsvThresh) {
     createTrackbar("maxRadius", "All Circles", &maxRadius, 200); //maxRadius (0 - 500)
     createTrackbar("blurSize", "All Circles", &blurSize, 200); //maxRadius (0 - 500)
     while (true) {
+        //fresh copies for redrawing
         Mat imgCpy = img.clone();
         Mat hsvCopy = hsvThresh.clone();
+        //need to be single channel for hough circle function
         cvtColor(hsvCopy, hsvCopy, COLOR_BGR2GRAY);
         //use blur to smooth the picture
         GaussianBlur(hsvCopy, hsvCopy, Size(blurSize*2+1, blurSize*2+1), 0, 0);
-        namedWindow("HSV copy", 1);
-        imshow("HSV copy", hsvCopy);
-        HoughCircles(hsvCopy, circles, HOUGH_GRADIENT, 1, minDist+1, param1+1, param2+1, minRadius+1, maxRadius+1);
+        namedWindow("Blurred B&W", 1);
+        imshow("Blurred B&W", hsvCopy);
+        //gets location of circles on playing area. +1's so they are never 0
+        HoughCircles(hsvCopy, circles, HOUGH_GRADIENT,
+                1, minDist+1, param1+1, param2+1, minRadius+1, maxRadius+1);
+        //Draw circles on the image where "balls" are found
         for (size_t i = 0; i < circles.size(); i++)
         {
             Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
@@ -202,7 +202,7 @@ vector<Vec3f> findAllCircles(Mat img, Mat hsvThresh) {
         }
         namedWindow("All Circles", 1);
         imshow("All Circles", imgCpy);
-        if (waitKey(30) >= 0) { //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
+        if (waitKey(30) >= 0) { //wait for key press to break out
             cout << "Now set the playing area!" << endl;
             break;
         }
@@ -211,35 +211,17 @@ vector<Vec3f> findAllCircles(Mat img, Mat hsvThresh) {
     return circles;
 }
 
-//to determine if it's on the playing area, have to find the contours
-//to do this we must draw it on its own area and overlay it on the picture
-vector<vector<Point> > makePlayingArea(Mat img) {
-    vector<vector<Point> > contours; vector<Vec4i> hierarchy;
-    Mat contourMapping = Mat::zeros(img.size(), CV_8UC1);
-    for (int j = 0; j < playingArea.size(); j++)
-    {
-        line(contourMapping, playingArea[j], playingArea[(j + 1) % playingArea.size()], Scalar(255), 3, 8);
-    }
-    // Get the contours
-    findContours(contourMapping, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
-    return contours;
-}
-
 //draws final images
-void findBalls(Mat finalImg, Mat projectorImg, vector<Vec3f> circles, vector<vector<Point> > playingAreaContours) {
+void finalOutput(Mat finalImg, Mat projectorImg, vector<Vec3f> circles) {
     int ballSize = 15;
     for (size_t i = 0; i < circles.size(); i++){
         Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-        //if(true){ //used to find which circles are cut off
-        if (pointPolygonTest(playingAreaContours[0], Point2f(center), false) == 1) {
-            int radius = cvRound(circles[i][2]);
-            // draw the circle center
-            circle(finalImg, center, 3, Scalar(0, 255, 0), -1, 8, 0);
-            circle(projectorImg, center, 3, Scalar(255, 255, 255), -1, 8, 0);
-            // draw the circle outline
-            circle(finalImg, center, ballSize, Scalar(0, 0, 255), 3, 8, 0);
-            circle(projectorImg, center, ballSize, Scalar(255, 255, 255), 3, 8, 0);
-        }
+        // draw the circle center
+        circle(finalImg, center, 3, Scalar(0, 255, 0), -1, 8, 0);
+        circle(projectorImg, center, 3, Scalar(255, 255, 255), -1, 8, 0);
+        // draw the circle outline
+        circle(finalImg, center, ballSize, Scalar(0, 0, 255), 3, 8, 0);
+        circle(projectorImg, center, ballSize, Scalar(255, 255, 255), 3, 8, 0);
     }
 }
 
@@ -255,16 +237,13 @@ int main(int argc, char** argv)
     img.copyTo(copyImg);
     img.copyTo(finalImg);
     projectorImg = Mat::zeros(img.size(), CV_8UC1);
-    //set up the playing area (make it so pockets don't get seen as balls)
+    //Choose the playing area to focus on
     Mat playingArea = setPlayingArea(copyImg);
-    //set the thresholds to find the balls
+    //Separate the balls from the table
     hsvThresh = hsvSliders(playingArea);
     //Look at all "seen" balls
     vector<Vec3f> allCircles = findAllCircles(copyImg, hsvThresh);
-    //Make the playing area contours
-    vector<vector<Point> > playingAreaContours = makePlayingArea(img);
-    //Find only circles within the playing area
-    findBalls(finalImg, projectorImg, allCircles, playingAreaContours);
+    finalOutput(finalImg, projectorImg, allCircles);
     //Display final result
     //What the projector would output
     namedWindow("Projected Image", 1);
@@ -272,7 +251,7 @@ int main(int argc, char** argv)
     //The picture with the balls found
     namedWindow("Balls Found", 1);
     imshow("Balls Found", finalImg);
-    cout << "Balls found! Press escape to end" << endl;
+    cout << "Balls found! Press a key to end" << endl;
     waitKey(0);
     return 0;
 }
